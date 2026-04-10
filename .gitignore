@@ -1,16 +1,45 @@
+# Dependencies
 node_modules/
+
+# Expo
 .expo/
 dist/
 web-build/
-.idea/
-.claude/
 
-# API keys
+# Build outputs
+android/build/
+android/.gradle/
+android/app/build/
+ios/build/
+ios/Pods/
+*.jks
+*.keystore
+
+# API keys & secrets
 src/config.ts
+.env
+.env.local
+.env.*
 
 # Android local config
 android/local.properties
 
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Claude Code
+.claude/
+
 # OS
 .DS_Store
 Thumbs.db
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# TypeScript
+*.tsbuildinfo
