@@ -1,0 +1,16 @@
+node_modules/
+.expo/
+dist/
+web-build/
+.idea/
+.claude/
+
+# API keys
+src/config.ts
+
+# Android local config
+android/local.properties
+
+# OS
+.DS_Store
+Thumbs.db
