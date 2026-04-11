@@ -22,6 +22,8 @@ ios/Pods/
 
 # Android local config
 android/local.properties
+worker.js
+wrangler.jsonc
 
 # IDE
 .idea/
