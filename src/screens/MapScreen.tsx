@@ -17,7 +17,7 @@ const STYLE_URL_LIGHT = 'https://tiles.openfreemap.org/styles/liberty';
 const STYLE_URL_DARK = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 
 export default function MapScreen() {
-  const { routeData, startLocation, steps, heightCm, routeType, setRouteData, themePreference } = useStore();
+  const { routeData, startLocation, steps, heightCm, routeType, setRouteData, replaceLastHistory, themePreference } = useStore();
   const navigation = useNavigation();
   const [regenerating, setRegenerating] = useState(false);
   const cameraRef = useRef<CameraRef | null>(null);
@@ -27,7 +27,7 @@ export default function MapScreen() {
   const mapStyle = scheme === 'dark' ? STYLE_URL_DARK : STYLE_URL_LIGHT;
   const t = useTranslation();
 
-  if (!routeData || !startLocation || routeData.geometry.length < 2) return null;
+  if (!routeData || routeData.geometry.length < 2) return null;
 
   const start = routeData.geometry[0];
   const end = routeData.geometry[routeData.geometry.length - 1];
@@ -57,6 +57,14 @@ export default function MapScreen() {
       const distanceM = stepsToMeters(steps, strideLength);
       const newRoute = await getOptimizedRoute(startLocation, distanceM, routeType, strideLength);
       setRouteData(newRoute);
+      replaceLastHistory({
+        id: Date.now().toString(),
+        date: new Date().toISOString(),
+        routeType,
+        steps,
+        distanceMeters: newRoute.distanceMeters,
+        geometry: newRoute.geometry,
+      });
     } finally {
       setRegenerating(false);
     }
