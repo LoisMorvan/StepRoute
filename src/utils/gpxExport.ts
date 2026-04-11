@@ -1,8 +1,11 @@
-import { File, Paths } from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { Coordinates } from '../types';
 
 export async function exportGPX(geometry: Coordinates[], name: string) {
+  const isAvailable = await Sharing.isAvailableAsync();
+  if (!isAvailable) throw new Error('Sharing is not available on this device');
+
   const trkpts = geometry
     .map((c) => `    <trkpt lat="${c.latitude}" lon="${c.longitude}"></trkpt>`)
     .join('\n');
@@ -14,7 +17,7 @@ ${trkpts}
   </trkseg></trk>
 </gpx>`;
 
-  const file = new File(Paths.cache, `steproute_${Date.now()}.gpx`);
-  await file.write(gpx);
-  await Sharing.shareAsync(file.uri, { mimeType: 'application/gpx+xml' });
+  const uri = `${FileSystem.cacheDirectory}steproute_${Date.now()}.gpx`;
+  await FileSystem.writeAsStringAsync(uri, gpx, { encoding: 'utf8' });
+  await Sharing.shareAsync(uri, { mimeType: 'application/gpx+xml', UTI: 'com.topografix.gpx' });
 }
