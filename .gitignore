@@ -16,7 +16,6 @@ ios/Pods/
 *.keystore
 
 # API keys & secrets
-src/config.ts
 .env
 .env.local
 .env.*
