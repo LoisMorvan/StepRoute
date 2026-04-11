@@ -1,2 +1,11 @@
-export const ROUTE_API_URL = 'https://steproute.lois-morvan.workers.dev';
-export const ROUTE_APP_TOKEN = 'a4446d854b44a5a36b6e6b678a43f553d24d9b0719b0e5bb51a582693376fef3';
+import Constants from 'expo-constants';
+
+const fallbackRouteApiUrl = 'https://steproute.lois-morvan.workers.dev';
+
+type ExtraConfig = {
+  routeApiUrl?: string;
+};
+
+const extra = (Constants.expoConfig?.extra ?? {}) as ExtraConfig;
+
+export const ROUTE_API_URL = extra.routeApiUrl ?? fallbackRouteApiUrl;

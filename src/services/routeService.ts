@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { Coordinates, RouteData, RouteType } from '../types';
-import { ROUTE_API_URL, ROUTE_APP_TOKEN } from '../config';
+import { ROUTE_API_URL } from '../config';
 import { metersToSteps } from './stepService';
 import { generateWaypoints } from '../utils/waypointGenerator';
 
@@ -15,7 +15,7 @@ async function getRoute(
     response = await axios.post(
       ROUTE_API_URL,
       { profile: 'foot-walking', coordinates },
-      { headers: { 'Content-Type': 'application/json', 'X-App-Token': ROUTE_APP_TOKEN } },
+      { headers: { 'Content-Type': 'application/json' } },
     );
   } catch (err: unknown) {
     if (axios.isAxiosError(err) && err.response) {
