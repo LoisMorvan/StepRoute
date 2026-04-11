@@ -10,19 +10,19 @@ export function useAppScheme(preference: ThemePreference): ColorSchemeName {
 export function getColors(scheme: ColorSchemeName) {
   const dark = scheme === 'dark';
   return {
-    bg: dark ? '#111' : '#f5f5f5',
-    card: dark ? '#1e1e1e' : '#fff',
-    cardAlt: dark ? '#2a2a2a' : '#f5f5f5',
+    bg: dark ? '#0F1A24' : '#f2f7f2',
+    card: dark ? '#182333' : '#fff',
+    cardAlt: dark ? '#1E2D3F' : '#eef5ee',
     text: dark ? '#f0f0f0' : '#1a1a1a',
-    subtext: dark ? '#999' : '#888',
-    muted: dark ? '#555' : '#aaa',
-    border: dark ? '#333' : '#eee',
-    separator: dark ? '#2a2a2a' : '#f0f0f0',
-    segmentBg: dark ? '#2a2a2a' : '#e8e8e8',
-    tabBar: dark ? '#1e1e1e' : '#fff',
-    tabBarBorder: dark ? '#333' : '#eee',
-    accent: '#4A90E2',
-    success: '#27ae60',
+    subtext: dark ? '#8AAFC0' : '#5a7a65',
+    muted: dark ? '#4A6275' : '#9ab5a0',
+    border: dark ? '#1E2D3F' : '#d8ead8',
+    separator: dark ? '#1E2D3F' : '#e4f0e4',
+    segmentBg: dark ? '#1E2D3F' : '#dceadc',
+    tabBar: dark ? '#182333' : '#fff',
+    tabBarBorder: dark ? '#1E2D3F' : '#d8ead8',
+    accent: '#5DBE4A',
+    success: '#3DAF6A',
     danger: '#e74c3c',
   };
 }

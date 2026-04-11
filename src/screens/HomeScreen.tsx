@@ -18,12 +18,7 @@ import { stepsToMeters, heightToStrideLength } from '../services/stepService';
 import { getOptimizedRoute } from '../services/routeService';
 import { RouteType } from '../types';
 import { getColors, useAppScheme } from '../theme';
-
-const ROUTE_TYPES: { label: string; value: RouteType }[] = [
-  { label: 'Boucle', value: 'loop' },
-  { label: 'Aller-retour', value: 'round-trip' },
-  { label: 'Aller simple', value: 'one-way' },
-];
+import { useTranslation } from '../i18n';
 
 export default function HomeScreen() {
   const navigation = useNavigation();
@@ -56,6 +51,13 @@ export default function HomeScreen() {
   const scheme = useAppScheme(themePreference);
   const c = getColors(scheme);
   const strideLength = heightToStrideLength(heightCm);
+  const t = useTranslation();
+
+  const ROUTE_TYPES: { label: string; value: RouteType }[] = [
+    { label: t.home.routeTypes.loop, value: 'loop' },
+    { label: t.home.routeTypes['round-trip'], value: 'round-trip' },
+    { label: t.home.routeTypes['one-way'], value: 'one-way' },
+  ];
 
   function handleAddressChange(text: string) {
     setAddressInput(text);
@@ -89,7 +91,7 @@ export default function HomeScreen() {
       setAddressInput('');
       setUsingCurrentLocation(true);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Impossible de récupérer la position');
+      setError(e instanceof Error ? e.message : t.home.errors.locationFailed);
     }
   }
 
@@ -104,7 +106,7 @@ export default function HomeScreen() {
       setAddressLabel(result.label);
       setUsingCurrentLocation(false);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Adresse introuvable');
+      setError(e instanceof Error ? e.message : t.home.errors.addressNotFound);
     } finally {
       setGeocodingLoading(false);
     }
@@ -113,11 +115,11 @@ export default function HomeScreen() {
   async function handleGenerate() {
     const parsedSteps = parseInt(stepsInput, 10);
     if (isNaN(parsedSteps) || parsedSteps < 100) {
-      setError('Entrez un nombre de pas valide (minimum 100)');
+      setError(t.home.errors.invalidSteps);
       return;
     }
     if (!startLocation) {
-      setError('Veuillez définir un point de départ');
+      setError(t.home.errors.noStart);
       return;
     }
 
@@ -133,7 +135,7 @@ export default function HomeScreen() {
         distanceM,
         routeType,
         strideLength,
-        (n, max) => setProgressMsg(`Optimisation du parcours… (${n}/${max})`),
+        (n, max) => setProgressMsg(t.home.optimizing(n, max)),
       );
       setRouteData(routeData);
       addToHistory({
@@ -148,8 +150,8 @@ export default function HomeScreen() {
     } catch (e: unknown) {
       setError(
         e instanceof Error
-          ? `Erreur : ${e.message}`
-          : 'Une erreur est survenue lors de la génération',
+          ? `Error: ${e.message}`
+          : t.home.errors.generationFailed,
       );
     } finally {
       setLoading(false);
@@ -157,7 +159,6 @@ export default function HomeScreen() {
     }
   }
 
-  // Texte de confirmation uniquement si adresse saisie (pas GPS brut)
   const addressConfirmText = addressLabel
     ? addressLabel.split(',').slice(0, 2).join(',')
     : null;
@@ -169,22 +170,22 @@ export default function HomeScreen() {
     >
       <ScrollView contentContainerStyle={styles.inner} keyboardShouldPersistTaps="handled">
         <Text style={[styles.title, { color: c.text }]}>StepRoute</Text>
-        <Text style={[styles.subtitle, { color: c.subtext }]}>Transformez vos pas en parcours</Text>
+        <Text style={[styles.subtitle, { color: c.subtext }]}>{t.home.subtitle}</Text>
 
         <View style={styles.section}>
-          <Text style={[styles.label, { color: c.subtext }]}>Nombre de pas</Text>
+          <Text style={[styles.label, { color: c.subtext }]}>{t.home.stepCount}</Text>
           <TextInput
             style={[styles.input, { backgroundColor: c.card, color: c.text }]}
             value={stepsInput}
             onChangeText={setStepsInput}
             keyboardType="numeric"
-            placeholder="ex. 10000"
+            placeholder={t.home.stepPlaceholder}
             placeholderTextColor={c.muted}
           />
         </View>
 
         <View style={styles.section}>
-          <Text style={[styles.label, { color: c.subtext }]}>Type de parcours</Text>
+          <Text style={[styles.label, { color: c.subtext }]}>{t.home.routeType}</Text>
           <View style={[styles.segmented, { backgroundColor: c.segmentBg }]}>
             {ROUTE_TYPES.map((rt) => (
               <TouchableOpacity
@@ -207,9 +208,8 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={[styles.label, { color: c.subtext }]}>Point de départ</Text>
+          <Text style={[styles.label, { color: c.subtext }]}>{t.home.startingPoint}</Text>
 
-          {/* Bouton position — change d'état quand position récupérée */}
           <TouchableOpacity
             style={[
               styles.locationButton,
@@ -225,11 +225,11 @@ export default function HomeScreen() {
                 { color: usingCurrentLocation ? '#fff' : c.accent },
               ]}
             >
-              {usingCurrentLocation ? '✓ Position actuelle' : '📍 Utiliser ma position'}
+              {usingCurrentLocation ? t.home.locationActive : t.home.useLocation}
             </Text>
           </TouchableOpacity>
 
-          <Text style={[styles.orText, { color: c.muted }]}>ou</Text>
+          <Text style={[styles.orText, { color: c.muted }]}>{t.home.or}</Text>
 
           <View style={styles.addressWrapper}>
             <View style={styles.addressRow}>
@@ -237,7 +237,7 @@ export default function HomeScreen() {
                 style={[styles.input, styles.addressInput, { backgroundColor: c.card, color: c.text }]}
                 value={addressInput}
                 onChangeText={handleAddressChange}
-                placeholder="Rechercher une adresse..."
+                placeholder={t.home.searchAddress}
                 placeholderTextColor={c.muted}
                 returnKeyType="search"
                 onSubmitEditing={handleSearchAddress}
@@ -289,7 +289,7 @@ export default function HomeScreen() {
           {isLoading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.generateButtonText}>Générer le parcours</Text>
+            <Text style={styles.generateButtonText}>{t.home.generate}</Text>
           )}
         </TouchableOpacity>
 
@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
   addressRow: { flexDirection: 'row', gap: 8, alignItems: 'stretch' },
   addressInput: { flex: 1 },
   searchButton: {
-    backgroundColor: '#4A90E2',
+    backgroundColor: '#5DBE4A',
     borderRadius: 12,
     width: 48,
     alignItems: 'center',
@@ -359,15 +359,15 @@ const styles = StyleSheet.create({
   },
   suggestionItem: { paddingHorizontal: 16, paddingVertical: 12 },
   suggestionText: { fontSize: 14, lineHeight: 20 },
-  locationConfirm: { marginTop: 8, color: '#27ae60', fontSize: 13, paddingHorizontal: 4 },
+  locationConfirm: { marginTop: 8, color: '#5DBE4A', fontSize: 13, paddingHorizontal: 4 },
   error: { color: '#e74c3c', fontSize: 13, marginBottom: 16, textAlign: 'center' },
   generateButton: {
-    backgroundColor: '#4A90E2',
+    backgroundColor: '#5DBE4A',
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 8,
-    shadowColor: '#4A90E2',
+    shadowColor: '#5DBE4A',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
