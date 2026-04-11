@@ -27,6 +27,7 @@ interface StoreState {
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   addToHistory: (entry: HistoryEntry) => void;
+  replaceLastHistory: (entry: HistoryEntry) => void;
   setThemePreference: (pref: ThemePreference) => void;
   setLanguage: (lang: Language) => void;
   reset: () => void;
@@ -60,6 +61,12 @@ export const useStore = create<StoreState>()(
       addToHistory: (entry) =>
         set((state) => ({
           history: [entry, ...state.history].slice(0, 20),
+        })),
+      replaceLastHistory: (entry) =>
+        set((state) => ({
+          history: state.history.length > 0
+            ? [entry, ...state.history.slice(1)]
+            : [entry],
         })),
       setThemePreference: (themePreference) => set({ themePreference }),
       setLanguage: (language) => set({ language }),
