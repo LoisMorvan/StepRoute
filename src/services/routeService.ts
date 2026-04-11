@@ -1,11 +1,8 @@
 import axios from 'axios';
 import { Coordinates, RouteData, RouteType } from '../types';
-import { ORS_API_KEY } from '../config';
+import { ROUTE_API_URL, ROUTE_APP_TOKEN } from '../config';
 import { metersToSteps } from './stepService';
 import { generateWaypoints } from '../utils/waypointGenerator';
-
-const ORS_URL =
-  'https://api.openrouteservice.org/v2/directions/foot-walking/geojson';
 
 async function getRoute(
   waypoints: Coordinates[],
@@ -13,16 +10,26 @@ async function getRoute(
 ): Promise<RouteData> {
   const coordinates = waypoints.map((wp) => [wp.longitude, wp.latitude]);
 
-  const response = await axios.post(
-    ORS_URL,
-    { coordinates },
-    {
-      headers: {
-        Authorization: ORS_API_KEY,
-        'Content-Type': 'application/json',
-      },
-    },
-  );
+  let response;
+  try {
+    response = await axios.post(
+      ROUTE_API_URL,
+      { profile: 'foot-walking', coordinates },
+      { headers: { 'Content-Type': 'application/json', 'X-App-Token': ROUTE_APP_TOKEN } },
+    );
+  } catch (err: unknown) {
+    if (axios.isAxiosError(err) && err.response) {
+      const status = err.response.status;
+      if (status === 429) {
+        throw new Error('Trop de requêtes, veuillez réessayer dans quelques instants.');
+      } else if (status === 400) {
+        throw new Error('Impossible de générer le trajet.');
+      } else {
+        throw new Error('Une erreur réseau est survenue.');
+      }
+    }
+    throw new Error('Une erreur réseau est survenue.');
+  }
 
   const feature = response.data.features[0];
   const rawCoords: [number, number][] = feature.geometry.coordinates;
