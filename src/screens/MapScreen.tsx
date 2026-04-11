@@ -1,7 +1,7 @@
 import MapLibreGL, { CameraRef } from '@maplibre/maplibre-react-native';
 import { useNavigation } from '@react-navigation/native';
 import React, { useRef, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import RouteInfo from '../components/RouteInfo';
 import { getOptimizedRoute } from '../services/routeService';
@@ -72,7 +72,11 @@ export default function MapScreen() {
 
   async function handleExportGPX() {
     if (!routeData) return;
-    await exportGPX(routeData.geometry, t.map.myRoute);
+    try {
+      await exportGPX(routeData.geometry, t.map.myRoute);
+    } catch (e) {
+      Alert.alert('Export GPX', String(e));
+    }
   }
 
   function handleRecenter() {
