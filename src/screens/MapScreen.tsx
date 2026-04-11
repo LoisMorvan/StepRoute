@@ -9,6 +9,7 @@ import { heightToStrideLength, stepsToMeters } from '../services/stepService';
 import { useStore } from '../store/useStore';
 import { getColors, useAppScheme } from '../theme';
 import { exportGPX } from '../utils/gpxExport';
+import { useTranslation } from '../i18n';
 
 MapLibreGL.setAccessToken(null);
 
@@ -24,6 +25,7 @@ export default function MapScreen() {
   const c = getColors(scheme);
   const insets = useSafeAreaInsets();
   const mapStyle = scheme === 'dark' ? STYLE_URL_DARK : STYLE_URL_LIGHT;
+  const t = useTranslation();
 
   if (!routeData || !startLocation || routeData.geometry.length < 2) return null;
 
@@ -62,7 +64,7 @@ export default function MapScreen() {
 
   async function handleExportGPX() {
     if (!routeData) return;
-    await exportGPX(routeData.geometry, 'Mon parcours');
+    await exportGPX(routeData.geometry, t.map.myRoute);
   }
 
   function handleRecenter() {
@@ -98,7 +100,7 @@ export default function MapScreen() {
       <TouchableOpacity
         style={[styles.recenterButton, { backgroundColor: c.card }]}
         onPress={handleRecenter}
-        accessibilityLabel="Recentrer sur le parcours"
+        accessibilityLabel={t.map.recenter}
       >
         <Text style={styles.recenterIcon}>⊙</Text>
       </TouchableOpacity>
@@ -115,12 +117,12 @@ export default function MapScreen() {
             {regenerating ? (
               <ActivityIndicator color={c.accent} size="small" />
             ) : (
-              <Text style={[styles.actionButtonText, { color: c.accent }]}>Regénérer</Text>
+              <Text style={[styles.actionButtonText, { color: c.accent }]}>{t.map.regenerate}</Text>
             )}
           </TouchableOpacity>
 
           <TouchableOpacity style={[styles.actionButton, { backgroundColor: c.card }]} onPress={handleExportGPX}>
-            <Text style={[styles.actionButtonText, { color: c.accent }]}>Exporter GPX</Text>
+            <Text style={[styles.actionButtonText, { color: c.accent }]}>{t.map.exportGPX}</Text>
           </TouchableOpacity>
         </View>
 
@@ -128,7 +130,7 @@ export default function MapScreen() {
           style={[styles.backButton, { backgroundColor: c.card }]}
           onPress={() => navigation.goBack()}
         >
-          <Text style={[styles.backButtonText, { color: c.accent }]}>← Nouveau parcours</Text>
+          <Text style={[styles.backButtonText, { color: c.accent }]}>{t.map.newRoute}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -139,7 +141,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   map: { flex: 1 },
   marker: { width: 16, height: 16, borderRadius: 8, borderWidth: 2, borderColor: '#fff' },
-  markerStart: { backgroundColor: '#27ae60' },
+  markerStart: { backgroundColor: '#5DBE4A' },
   markerEnd: { backgroundColor: '#e74c3c' },
   recenterButton: {
     position: 'absolute',
@@ -156,7 +158,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
   },
-  recenterIcon: { fontSize: 22, color: '#4A90E2', lineHeight: 24 },
+  recenterIcon: { fontSize: 22, color: '#5DBE4A', lineHeight: 24 },
   infoContainer: {
     position: 'absolute',
     left: 16,

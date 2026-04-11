@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Coordinates, HistoryEntry, RouteData, RouteType } from '../types';
 import { heightToStrideLength } from '../services/stepService';
+import { Language } from '../i18n';
 
 export type ThemePreference = 'system' | 'light' | 'dark';
 
@@ -16,6 +17,7 @@ interface StoreState {
   error: string | null;
   history: HistoryEntry[];
   themePreference: ThemePreference;
+  language: Language;
 
   setSteps: (steps: number) => void;
   setHeightCm: (cm: number) => void;
@@ -26,6 +28,7 @@ interface StoreState {
   setError: (error: string | null) => void;
   addToHistory: (entry: HistoryEntry) => void;
   setThemePreference: (pref: ThemePreference) => void;
+  setLanguage: (lang: Language) => void;
   reset: () => void;
 }
 
@@ -39,6 +42,7 @@ const defaultState = {
   error: null,
   history: [] as HistoryEntry[],
   themePreference: 'system' as ThemePreference,
+  language: 'en' as Language,
 };
 
 export const useStore = create<StoreState>()(
@@ -58,6 +62,7 @@ export const useStore = create<StoreState>()(
           history: [entry, ...state.history].slice(0, 20),
         })),
       setThemePreference: (themePreference) => set({ themePreference }),
+      setLanguage: (language) => set({ language }),
       reset: () => set(defaultState),
     }),
     {
@@ -69,6 +74,7 @@ export const useStore = create<StoreState>()(
         steps: state.steps,
         history: state.history,
         themePreference: state.themePreference,
+        language: state.language,
       }),
     },
   ),

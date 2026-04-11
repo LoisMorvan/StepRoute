@@ -5,17 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useStore } from '../store/useStore';
 import { HistoryEntry } from '../types';
 import { getColors, useAppScheme } from '../theme';
-
-const ROUTE_TYPE_LABELS: Record<string, string> = {
-  loop: 'Boucle',
-  'round-trip': 'Aller-retour',
-  'one-way': 'Aller simple',
-};
-
-function formatDate(iso: string) {
-  const d = new Date(iso);
-  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-}
+import { useTranslation } from '../i18n';
 
 function formatDistance(meters: number) {
   if (meters >= 1000) return `${(meters / 1000).toFixed(1)} km`;
@@ -27,6 +17,18 @@ export default function HistoryScreen() {
   const { history, setRouteData, themePreference } = useStore();
   const c = getColors(useAppScheme(themePreference));
   const insets = useSafeAreaInsets();
+  const t = useTranslation();
+
+  function formatDate(iso: string) {
+    const d = new Date(iso);
+    return d.toLocaleDateString(t.history.locale, {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
 
   function handleSelectEntry(entry: HistoryEntry) {
     setRouteData({
@@ -38,7 +40,7 @@ export default function HistoryScreen() {
   }
 
   const header = (
-    <Text style={[styles.title, { color: c.text, marginTop: insets.top + 8 }]}>Historique</Text>
+    <Text style={[styles.title, { color: c.text, marginTop: insets.top + 8 }]}>{t.history.title}</Text>
   );
 
   if (history.length === 0) {
@@ -46,7 +48,7 @@ export default function HistoryScreen() {
       <View style={[styles.empty, { backgroundColor: c.bg }]}>
         {header}
         <Text style={styles.emptyIcon}>🗺️</Text>
-        <Text style={[styles.emptyText, { color: c.subtext }]}>Aucun parcours généré pour l'instant</Text>
+        <Text style={[styles.emptyText, { color: c.subtext }]}>{t.history.empty}</Text>
       </View>
     );
   }
@@ -62,12 +64,16 @@ export default function HistoryScreen() {
         <TouchableOpacity style={[styles.item, { backgroundColor: c.card }]} onPress={() => handleSelectEntry(item)}>
           <View style={styles.itemHeader}>
             <Text style={[styles.itemDate, { color: c.subtext }]}>{formatDate(item.date)}</Text>
-            <Text style={[styles.itemType, { color: c.accent }]}>{ROUTE_TYPE_LABELS[item.routeType] ?? item.routeType}</Text>
+            <Text style={[styles.itemType, { color: c.accent }]}>
+              {t.history.routeTypes[item.routeType] ?? item.routeType}
+            </Text>
           </View>
           <View style={styles.itemStats}>
             <Text style={[styles.itemStat, { color: c.text }]}>{formatDistance(item.distanceMeters)}</Text>
             <Text style={[styles.itemStatSep, { color: c.muted }]}>·</Text>
-            <Text style={[styles.itemStat, { color: c.text }]}>{item.steps.toLocaleString('fr-FR')} pas</Text>
+            <Text style={[styles.itemStat, { color: c.text }]}>
+              {item.steps.toLocaleString(t.history.locale)} {t.history.steps}
+            </Text>
           </View>
         </TouchableOpacity>
       )}

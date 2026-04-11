@@ -7,23 +7,33 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useStore, ThemePreference } from '../store/useStore';
 import { heightToStrideLength } from '../services/stepService';
 import { getColors, useAppScheme } from '../theme';
-
-const THEME_OPTIONS: { label: string; value: ThemePreference }[] = [
-  { label: 'Système', value: 'system' },
-  { label: 'Clair', value: 'light' },
-  { label: 'Sombre', value: 'dark' },
-];
+import { useTranslation, Language } from '../i18n';
 
 export default function SettingsScreen() {
-  const { heightCm, setHeightCm, themePreference, setThemePreference } = useStore();
+  const navigation = useNavigation();
+  const { heightCm, setHeightCm, themePreference, setThemePreference, language, setLanguage } =
+    useStore();
   const [heightInput, setHeightInput] = useState(String(heightCm));
 
   const scheme = useAppScheme(themePreference);
   const c = getColors(scheme);
   const strideLength = heightToStrideLength(heightCm);
+  const t = useTranslation();
+
+  const THEME_OPTIONS: { label: string; value: ThemePreference }[] = [
+    { label: t.settings.themes.system, value: 'system' },
+    { label: t.settings.themes.light, value: 'light' },
+    { label: t.settings.themes.dark, value: 'dark' },
+  ];
+
+  const LANGUAGE_OPTIONS: { label: string; value: Language }[] = [
+    { label: t.settings.languages.en, value: 'en' },
+    { label: t.settings.languages.fr, value: 'fr' },
+  ];
 
   function handleHeightChange(text: string) {
     setHeightInput(text);
@@ -35,13 +45,14 @@ export default function SettingsScreen() {
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: c.bg }]} contentContainerStyle={styles.inner}>
-      <Text style={[styles.title, { color: c.text }]}>Paramètres</Text>
+      <Text style={[styles.title, { color: c.text }]}>{t.settings.title}</Text>
 
-      {/* Apparence */}
+      {/* Appearance */}
       <View style={[styles.card, { backgroundColor: c.card }]}>
-        <Text style={[styles.sectionTitle, { color: c.muted }]}>Apparence</Text>
+        <Text style={[styles.sectionTitle, { color: c.muted }]}>{t.settings.appearance}</Text>
+
         <View style={styles.field}>
-          <Text style={[styles.label, { color: c.text }]}>Thème</Text>
+          <Text style={[styles.label, { color: c.text }]}>{t.settings.theme}</Text>
           <View style={[styles.segmented, { backgroundColor: c.segmentBg }]}>
             {THEME_OPTIONS.map((opt) => (
               <TouchableOpacity
@@ -62,16 +73,41 @@ export default function SettingsScreen() {
             ))}
           </View>
         </View>
+
+        <View style={[styles.divider, { backgroundColor: c.separator }]} />
+
+        <View style={styles.field}>
+          <Text style={[styles.label, { color: c.text }]}>{t.settings.language}</Text>
+          <View style={[styles.segmented, { backgroundColor: c.segmentBg }]}>
+            {LANGUAGE_OPTIONS.map((opt) => (
+              <TouchableOpacity
+                key={opt.value}
+                style={[styles.segment, language === opt.value && { backgroundColor: c.card }]}
+                onPress={() => setLanguage(opt.value)}
+              >
+                <Text
+                  style={[
+                    styles.segmentText,
+                    { color: c.muted },
+                    language === opt.value && { color: c.text, fontWeight: '600' },
+                  ]}
+                >
+                  {opt.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
       </View>
 
       <View style={styles.cardGap} />
 
-      {/* Profil */}
+      {/* Profile */}
       <View style={[styles.card, { backgroundColor: c.card }]}>
-        <Text style={[styles.sectionTitle, { color: c.muted }]}>Profil</Text>
+        <Text style={[styles.sectionTitle, { color: c.muted }]}>{t.settings.profile}</Text>
 
         <View style={styles.field}>
-          <Text style={[styles.label, { color: c.text }]}>Taille</Text>
+          <Text style={[styles.label, { color: c.text }]}>{t.settings.height}</Text>
           <View style={styles.inputRow}>
             <TextInput
               style={[styles.input, { backgroundColor: c.cardAlt, color: c.text }]}
@@ -88,13 +124,26 @@ export default function SettingsScreen() {
         <View style={[styles.divider, { backgroundColor: c.separator }]} />
 
         <View style={styles.field}>
-          <Text style={[styles.label, { color: c.text }]}>Longueur de foulée calculée</Text>
+          <Text style={[styles.label, { color: c.text }]}>{t.settings.strideLength}</Text>
           <Text style={styles.valueText}>{(strideLength * 100).toFixed(1)} cm</Text>
           <Text style={[styles.hint, { color: c.muted }]}>
-            Calculée automatiquement depuis ta taille (taille × 0.413).
-            Pour 10 000 pas → ~{((strideLength * 10000) / 1000).toFixed(1)} km.
+            {t.settings.strideHint(((strideLength * 10000) / 1000).toFixed(1))}
           </Text>
         </View>
+      </View>
+
+      <View style={styles.cardGap} />
+
+      {/* Legal */}
+      <View style={[styles.card, { backgroundColor: c.card }]}>
+        <Text style={[styles.sectionTitle, { color: c.muted }]}>{t.settings.legal}</Text>
+        <TouchableOpacity
+          style={styles.linkRow}
+          onPress={() => navigation.navigate('PrivacyPolicy' as never)}
+        >
+          <Text style={[styles.linkText, { color: c.text }]}>{t.settings.privacyPolicy}</Text>
+          <Text style={[styles.chevron, { color: c.muted }]}>›</Text>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );
@@ -129,7 +178,10 @@ const styles = StyleSheet.create({
     width: 100,
   },
   unit: { fontSize: 15 },
-  valueText: { fontSize: 22, fontWeight: '600', color: '#4A90E2', marginBottom: 6 },
+  valueText: { fontSize: 22, fontWeight: '600', color: '#5DBE4A', marginBottom: 6 },
   hint: { fontSize: 13, lineHeight: 18 },
   divider: { height: 1, marginVertical: 16 },
+  linkRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 4 },
+  linkText: { fontSize: 15, fontWeight: '500' },
+  chevron: { fontSize: 20, lineHeight: 22 },
 });
