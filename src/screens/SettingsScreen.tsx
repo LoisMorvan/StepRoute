@@ -15,8 +15,13 @@ import { useTranslation, Language } from '../i18n';
 
 export default function SettingsScreen() {
   const navigation = useNavigation();
-  const { heightCm, setHeightCm, themePreference, setThemePreference, language, setLanguage } =
-    useStore();
+  const {
+    heightCm, setHeightCm,
+    themePreference, setThemePreference,
+    language, setLanguage,
+    avoidHighways, setAvoidHighways,
+    preferGreen, setPreferGreen,
+  } = useStore();
   const [heightInput, setHeightInput] = useState(String(heightCm));
 
   const scheme = useAppScheme(themePreference);
@@ -129,6 +134,61 @@ export default function SettingsScreen() {
           <Text style={[styles.hint, { color: c.muted }]}>
             {t.settings.strideHint(((strideLength * 10000) / 1000).toFixed(1))}
           </Text>
+        </View>
+      </View>
+
+      <View style={styles.cardGap} />
+
+      {/* Route preferences */}
+      <View style={[styles.card, { backgroundColor: c.card }]}>
+        <Text style={[styles.sectionTitle, { color: c.muted }]}>{t.settings.parcours}</Text>
+
+        <View style={styles.field}>
+          <Text style={[styles.label, { color: c.text }]}>{t.settings.avoidHighways}</Text>
+          <View style={[styles.segmented, { backgroundColor: c.segmentBg }]}>
+            {([false, true] as const).map((val) => (
+              <TouchableOpacity
+                key={String(val)}
+                style={[styles.segment, avoidHighways === val && { backgroundColor: c.card }]}
+                onPress={() => setAvoidHighways(val)}
+              >
+                <Text
+                  style={[
+                    styles.segmentText,
+                    { color: c.muted },
+                    avoidHighways === val && { color: c.text, fontWeight: '600' },
+                  ]}
+                >
+                  {val ? 'On' : 'Off'}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        <View style={[styles.divider, { backgroundColor: c.separator }]} />
+
+        <View style={styles.field}>
+          <Text style={[styles.label, { color: c.text }]}>{t.settings.preferGreen}</Text>
+          <View style={[styles.segmented, { backgroundColor: c.segmentBg }]}>
+            {([false, true] as const).map((val) => (
+              <TouchableOpacity
+                key={String(val)}
+                style={[styles.segment, preferGreen === val && { backgroundColor: c.card }]}
+                onPress={() => setPreferGreen(val)}
+              >
+                <Text
+                  style={[
+                    styles.segmentText,
+                    { color: c.muted },
+                    preferGreen === val && { color: c.text, fontWeight: '600' },
+                  ]}
+                >
+                  {val ? 'On' : 'Off'}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
       </View>
 

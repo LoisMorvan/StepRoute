@@ -32,8 +32,12 @@ const config: ExpoConfig = {
       'android.permission.ACCESS_FINE_LOCATION',
       'android.permission.ACCESS_COARSE_LOCATION',
       'android.permission.INTERNET',
+      'android.permission.ACTIVITY_RECOGNITION',
     ],
   },
+  plugins: [
+    ['expo-sensors', { motionPermission: 'Allow StepRoute to count your steps while walking.' }],
+  ],
   web: {
     favicon: './assets/favicon.png',
   },
