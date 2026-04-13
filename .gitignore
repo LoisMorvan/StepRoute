@@ -22,8 +22,9 @@ ios/Pods/
 
 # Android local config
 android/local.properties
-worker.js
-wrangler.jsonc
+
+# Cloudflare Worker (compiled output + config)
+cloudflare/
 
 # IDE
 .idea/

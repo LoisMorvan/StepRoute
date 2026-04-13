@@ -1,4 +1,4 @@
-package com.steproute.app
+package com.loismorvan.steproute
 
 import android.os.Build
 import android.os.Bundle

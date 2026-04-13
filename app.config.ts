@@ -27,7 +27,7 @@ const config: ExpoConfig = {
     versionCode: 1,
     edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
-    package: 'com.steproute.app',
+    package: 'com.loismorvan.steproute',
     permissions: [
       'android.permission.ACCESS_FINE_LOCATION',
       'android.permission.ACCESS_COARSE_LOCATION',

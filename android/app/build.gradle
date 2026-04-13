@@ -87,9 +87,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.steproute.app'
+    namespace 'com.loismorvan.steproute'
     defaultConfig {
-        applicationId 'com.steproute.app'
+        applicationId 'com.loismorvan.steproute'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
