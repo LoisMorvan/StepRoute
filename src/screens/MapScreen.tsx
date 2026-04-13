@@ -1,6 +1,8 @@
 import MapLibreGL, { CameraRef } from '@maplibre/maplibre-react-native';
 import { useNavigation } from '@react-navigation/native';
-import React, { useRef, useState } from 'react';
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
+import { Pedometer } from 'expo-sensors';
+import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import RouteInfo from '../components/RouteInfo';
@@ -8,7 +10,7 @@ import { getOptimizedRoute } from '../services/routeService';
 import { heightToStrideLength, stepsToMeters } from '../services/stepService';
 import { useStore } from '../store/useStore';
 import { getColors, useAppScheme } from '../theme';
-import { exportGPX } from '../utils/gpxExport';
+import { openInMaps } from '../utils/openInMaps';
 import { useTranslation } from '../i18n';
 
 MapLibreGL.setAccessToken(null);
@@ -17,10 +19,22 @@ const STYLE_URL_LIGHT = 'https://tiles.openfreemap.org/styles/liberty';
 const STYLE_URL_DARK = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 
 export default function MapScreen() {
-  const { routeData, startLocation, steps, heightCm, routeType, setRouteData, replaceLastHistory, themePreference } = useStore();
+  const { routeData, startLocation, steps, heightCm, routeType, avoidHighways, preferGreen, setRouteData, replaceLastHistory, themePreference } = useStore();
   const navigation = useNavigation();
   const [regenerating, setRegenerating] = useState(false);
+  const [overlayHeight, setOverlayHeight] = useState(220);
+  const [isTracking, setIsTracking] = useState(false);
+  const [liveSteps, setLiveSteps] = useState(0);
   const cameraRef = useRef<CameraRef | null>(null);
+  const pedometerRef = useRef<{ remove(): void } | null>(null);
+  const lastPositionRef = useRef<[number, number] | null>(null);
+
+  useEffect(() => {
+    return () => {
+      pedometerRef.current?.remove();
+      deactivateKeepAwake();
+    };
+  }, []);
   const scheme = useAppScheme(themePreference);
   const c = getColors(scheme);
   const insets = useSafeAreaInsets();
@@ -55,7 +69,7 @@ export default function MapScreen() {
     try {
       const strideLength = heightToStrideLength(heightCm);
       const distanceM = stepsToMeters(steps, strideLength);
-      const newRoute = await getOptimizedRoute(startLocation, distanceM, routeType, strideLength);
+      const newRoute = await getOptimizedRoute(startLocation, distanceM, routeType, strideLength, avoidHighways, preferGreen);
       setRouteData(newRoute);
       replaceLastHistory({
         id: Date.now().toString(),
@@ -64,23 +78,57 @@ export default function MapScreen() {
         steps,
         distanceMeters: newRoute.distanceMeters,
         geometry: newRoute.geometry,
+        ascent: newRoute.ascent,
+        descent: newRoute.descent,
       });
     } finally {
       setRegenerating(false);
     }
   }
 
-  async function handleExportGPX() {
+  async function handleOpenInMaps() {
     if (!routeData) return;
     try {
-      await exportGPX(routeData.geometry, t.map.myRoute);
+      await openInMaps(routeData.geometry);
     } catch (e) {
-      Alert.alert('Export GPX', String(e));
+      Alert.alert('Open in Maps', String(e));
     }
   }
 
   function handleRecenter() {
-    cameraRef.current?.fitBounds(bounds.ne, bounds.sw, [60, 40, 220, 40], 500);
+    if (isTracking) {
+      if (lastPositionRef.current) {
+        cameraRef.current?.moveTo(lastPositionRef.current, 300);
+      }
+      return;
+    }
+    cameraRef.current?.fitBounds(bounds.ne, bounds.sw, [60, 40, overlayHeight + 16, 40], 500);
+  }
+
+  async function handleStartWalk() {
+    setLiveSteps(0);
+    await activateKeepAwakeAsync();
+    const { status } = await Pedometer.requestPermissionsAsync();
+    if (status === 'granted') {
+      const available = await Pedometer.isAvailableAsync();
+      if (available) {
+        pedometerRef.current = Pedometer.watchStepCount(({ steps }) => {
+          setLiveSteps(steps);
+        });
+      }
+    }
+    setIsTracking(true);
+  }
+
+  function handleStopWalk() {
+    deactivateKeepAwake();
+    pedometerRef.current?.remove();
+    pedometerRef.current = null;
+    setLiveSteps(0);
+    setIsTracking(false);
+    setTimeout(() => {
+      cameraRef.current?.fitBounds(bounds.ne, bounds.sw, [60, 40, overlayHeight + 16, 40], 500);
+    }, 50);
   }
 
   return (
@@ -88,8 +136,20 @@ export default function MapScreen() {
       <MapLibreGL.MapView style={styles.map} mapStyle={mapStyle}>
         <MapLibreGL.Camera
           ref={cameraRef}
-          bounds={{ ne: bounds.ne, sw: bounds.sw, paddingTop: 60, paddingBottom: 220, paddingLeft: 40, paddingRight: 40 }}
+          bounds={isTracking ? undefined : { ne: bounds.ne, sw: bounds.sw, paddingTop: 60, paddingBottom: overlayHeight + 16, paddingLeft: 40, paddingRight: 40 }}
           animationDuration={500}
+          followUserLocation={isTracking}
+          followZoomLevel={17}
+        />
+
+        <MapLibreGL.UserLocation
+          visible={isTracking}
+          renderMode="normal"
+          animated={true}
+          minDisplacement={5}
+          onUpdate={(loc) => {
+            lastPositionRef.current = [loc.coords.longitude, loc.coords.latitude];
+          }}
         />
 
         <MapLibreGL.ShapeSource id="route" shape={routeGeoJSON}>
@@ -108,35 +168,57 @@ export default function MapScreen() {
         </MapLibreGL.PointAnnotation>
       </MapLibreGL.MapView>
 
-      {/* Bouton recentrer flottant */}
+      {/* Bouton recentrer flottant — bas droit, juste au-dessus de l'overlay */}
       <TouchableOpacity
-        style={[styles.recenterButton, { backgroundColor: c.card }]}
+        style={[styles.recenterButton, { backgroundColor: c.card, bottom: insets.bottom + overlayHeight + 24 }]}
         onPress={handleRecenter}
         accessibilityLabel={t.map.recenter}
       >
         <Text style={styles.recenterIcon}>⊙</Text>
       </TouchableOpacity>
 
-      <View style={[styles.infoContainer, { bottom: insets.bottom + 16 }]}>
+      <View style={[styles.infoContainer, { bottom: insets.bottom + 16 }]} onLayout={(e) => setOverlayHeight(e.nativeEvent.layout.height)}>
         <RouteInfo routeData={routeData} />
 
-        <View style={styles.buttonRow}>
-          <TouchableOpacity
-            style={[styles.actionButton, { backgroundColor: c.card }, regenerating && styles.actionButtonDisabled]}
-            onPress={handleRegenerate}
-            disabled={regenerating}
-          >
-            {regenerating ? (
-              <ActivityIndicator color={c.accent} size="small" />
-            ) : (
-              <Text style={[styles.actionButtonText, { color: c.accent }]}>{t.map.regenerate}</Text>
-            )}
-          </TouchableOpacity>
+        {isTracking ? (
+          <>
+            <View style={[styles.stepCounterCard, { backgroundColor: c.card }]}>
+              <Text style={[styles.stepCounterNumber, { color: c.accent }]}>
+                {liveSteps.toLocaleString()}
+              </Text>
+              <Text style={[styles.stepCounterLabel, { color: c.subtext }]}>
+                {t.map.stepsWalked}
+              </Text>
+            </View>
+            <TouchableOpacity style={styles.stopButton} onPress={handleStopWalk}>
+              <Text style={[styles.actionButtonText, { color: '#fff' }]}>{t.map.stopWalk}</Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          <>
+            <View style={styles.buttonRow}>
+              <TouchableOpacity
+                style={[styles.actionButton, { backgroundColor: c.card }, regenerating && styles.actionButtonDisabled]}
+                onPress={handleRegenerate}
+                disabled={regenerating}
+              >
+                {regenerating ? (
+                  <ActivityIndicator color={c.accent} size="small" />
+                ) : (
+                  <Text style={[styles.actionButtonText, { color: c.accent }]}>{t.map.regenerate}</Text>
+                )}
+              </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.actionButton, { backgroundColor: c.card }]} onPress={handleExportGPX}>
-            <Text style={[styles.actionButtonText, { color: c.accent }]}>{t.map.exportGPX}</Text>
-          </TouchableOpacity>
-        </View>
+              <TouchableOpacity style={[styles.actionButton, styles.startButton]} onPress={handleStartWalk}>
+                <Text style={[styles.actionButtonText, { color: '#fff' }]}>{t.map.startWalk}</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity style={[styles.actionButton, styles.openMapsButton, { backgroundColor: c.card }]} onPress={handleOpenInMaps}>
+              <Text style={[styles.actionButtonText, { color: c.accent }]}>{t.map.openInMaps}</Text>
+            </TouchableOpacity>
+          </>
+        )}
 
         <TouchableOpacity
           style={[styles.backButton, { backgroundColor: c.card }]}
@@ -157,7 +239,6 @@ const styles = StyleSheet.create({
   markerEnd: { backgroundColor: '#e74c3c' },
   recenterButton: {
     position: 'absolute',
-    top: 16,
     right: 16,
     width: 44,
     height: 44,
@@ -181,7 +262,7 @@ const styles = StyleSheet.create({
   actionButton: {
     flex: 1,
     borderRadius: 12,
-    paddingVertical: 12,
+    paddingVertical: 9,
     paddingHorizontal: 16,
     alignItems: 'center',
     shadowColor: '#000',
@@ -192,9 +273,36 @@ const styles = StyleSheet.create({
   },
   actionButtonDisabled: { opacity: 0.6 },
   actionButtonText: { fontSize: 14, fontWeight: '600' },
-  backButton: {
+  startButton: { backgroundColor: '#5DBE4A' },
+  stepCounterCard: {
     borderRadius: 12,
     paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: 'center' as const,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  stepCounterNumber: { fontSize: 28, fontWeight: '700', lineHeight: 32 },
+  stepCounterLabel: { fontSize: 12, fontWeight: '500', marginTop: 2 },
+  openMapsButton: { flex: undefined },
+  stopButton: {
+    borderRadius: 12,
+    paddingVertical: 9,
+    paddingHorizontal: 16,
+    alignItems: 'center' as const,
+    backgroundColor: '#e74c3c',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  backButton: {
+    borderRadius: 12,
+    paddingVertical: 9,
     paddingHorizontal: 20,
     alignItems: 'center',
     shadowColor: '#000',

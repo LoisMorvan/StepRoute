@@ -9,6 +9,8 @@ interface RouteGenerationPayload {
   steps: number;
   strideLength: number;
   targetDistanceM: number;
+  avoidHighways?: boolean;
+  preferGreen?: boolean;
 }
 
 async function getRoute(payload: RouteGenerationPayload): Promise<RouteData> {
@@ -38,6 +40,8 @@ export async function getOptimizedRoute(
   targetDistanceM: number,
   routeType: RouteType,
   strideLength: number,
+  avoidHighways: boolean,
+  preferGreen: boolean,
   onProgress?: (attempt: number, max: number) => void,
 ): Promise<RouteData> {
   const steps = Math.max(100, Math.round(targetDistanceM / strideLength));
@@ -50,5 +54,7 @@ export async function getOptimizedRoute(
     steps,
     strideLength,
     targetDistanceM,
+    avoidHighways,
+    preferGreen,
   });
 }

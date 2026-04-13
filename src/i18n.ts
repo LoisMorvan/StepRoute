@@ -52,10 +52,15 @@ export const translations = {
     },
     map: {
       regenerate: 'Regenerate',
-      exportGPX: 'Export GPX',
+      openInMaps: 'Open in Maps',
       newRoute: '← New route',
       myRoute: 'My route',
       recenter: 'Recenter on route',
+      startWalk: 'Start Walk',
+      stopWalk: 'Stop Walk',
+      stepsWalked: 'steps walked',
+      elevation: (ascent: number, descent: number) =>
+        `Elevation  ↑ ${Math.round(ascent)}m  ↓ ${Math.round(descent)}m`,
     },
     settings: {
       title: 'Settings',
@@ -76,6 +81,9 @@ export const translations = {
         en: 'English',
         fr: 'Français',
       },
+      parcours: 'Route preferences',
+      avoidHighways: 'Avoid highways',
+      preferGreen: 'Prefer green areas',
       legal: 'Legal',
       privacyPolicy: 'Privacy Policy',
     },
@@ -167,10 +175,15 @@ export const translations = {
     },
     map: {
       regenerate: 'Regénérer',
-      exportGPX: 'Exporter GPX',
+      openInMaps: 'Ouvrir dans Maps',
       newRoute: '← Nouveau parcours',
       myRoute: 'Mon parcours',
       recenter: 'Recentrer sur le parcours',
+      startWalk: 'Démarrer',
+      stopWalk: 'Arrêter',
+      stepsWalked: 'pas parcourus',
+      elevation: (ascent: number, descent: number) =>
+        `Dénivelé  ↑ ${Math.round(ascent)}m  ↓ ${Math.round(descent)}m`,
     },
     settings: {
       title: 'Paramètres',
@@ -191,6 +204,9 @@ export const translations = {
         en: 'English',
         fr: 'Français',
       },
+      parcours: 'Préférences de parcours',
+      avoidHighways: 'Éviter les grands axes',
+      preferGreen: 'Préférer les espaces verts',
       legal: 'Mentions légales',
       privacyPolicy: 'Politique de confidentialité',
     },

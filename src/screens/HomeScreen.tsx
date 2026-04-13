@@ -30,6 +30,8 @@ export default function HomeScreen() {
     isLoading,
     error,
     themePreference,
+    avoidHighways,
+    preferGreen,
     setSteps,
     setRouteType,
     setStartLocation,
@@ -135,6 +137,8 @@ export default function HomeScreen() {
         distanceM,
         routeType,
         strideLength,
+        avoidHighways,
+        preferGreen,
         (n, max) => setProgressMsg(t.home.optimizing(n, max)),
       );
       setRouteData(routeData);
@@ -145,6 +149,8 @@ export default function HomeScreen() {
         steps: parsedSteps,
         distanceMeters: routeData.distanceMeters,
         geometry: routeData.geometry,
+        ascent: routeData.ascent,
+        descent: routeData.descent,
       });
       navigation.navigate('Map' as never);
     } catch (e: unknown) {
