@@ -7,7 +7,12 @@ export const translations = {
     tabs: {
       home: 'Home',
       history: 'History',
+      favorites: 'Favorites',
       settings: 'Settings',
+    },
+    favorites: {
+      title: 'Favorites',
+      empty: 'No favorites yet',
     },
     home: {
       subtitle: 'Turn your steps into a route',
@@ -117,7 +122,12 @@ export const translations = {
     tabs: {
       home: 'Accueil',
       history: 'Historique',
+      favorites: 'Favoris',
       settings: 'Paramètres',
+    },
+    favorites: {
+      title: 'Favoris',
+      empty: 'Aucun favori pour l\'instant',
     },
     home: {
       subtitle: 'Transformez vos pas en parcours',

@@ -18,6 +18,8 @@ interface StoreState {
   history: HistoryEntry[];
   themePreference: ThemePreference;
   language: Language;
+  avoidHighways: boolean;
+  preferGreen: boolean;
 
   setSteps: (steps: number) => void;
   setHeightCm: (cm: number) => void;
@@ -28,8 +30,11 @@ interface StoreState {
   setError: (error: string | null) => void;
   addToHistory: (entry: HistoryEntry) => void;
   replaceLastHistory: (entry: HistoryEntry) => void;
+  toggleFavorite: (id: string) => void;
   setThemePreference: (pref: ThemePreference) => void;
   setLanguage: (lang: Language) => void;
+  setAvoidHighways: (v: boolean) => void;
+  setPreferGreen: (v: boolean) => void;
   reset: () => void;
 }
 
@@ -44,6 +49,8 @@ const defaultState = {
   history: [] as HistoryEntry[],
   themePreference: 'system' as ThemePreference,
   language: 'en' as Language,
+  avoidHighways: false,
+  preferGreen: false,
 };
 
 export const useStore = create<StoreState>()(
@@ -68,8 +75,16 @@ export const useStore = create<StoreState>()(
             ? [entry, ...state.history.slice(1)]
             : [entry],
         })),
+      toggleFavorite: (id) =>
+        set((state) => ({
+          history: state.history.map((e) =>
+            e.id === id ? { ...e, isFavorite: !e.isFavorite } : e
+          ),
+        })),
       setThemePreference: (themePreference) => set({ themePreference }),
       setLanguage: (language) => set({ language }),
+      setAvoidHighways: (avoidHighways) => set({ avoidHighways }),
+      setPreferGreen: (preferGreen) => set({ preferGreen }),
       reset: () => set(defaultState),
     }),
     {
@@ -82,6 +97,8 @@ export const useStore = create<StoreState>()(
         history: state.history,
         themePreference: state.themePreference,
         language: state.language,
+        avoidHighways: state.avoidHighways,
+        preferGreen: state.preferGreen,
       }),
     },
   ),

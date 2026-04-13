@@ -12,12 +12,14 @@ function formatDistance(meters: number) {
   return `${Math.round(meters)} m`;
 }
 
-export default function HistoryScreen() {
+export default function FavoritesScreen() {
   const navigation = useNavigation();
   const { history, setRouteData, toggleFavorite, themePreference } = useStore();
   const c = getColors(useAppScheme(themePreference));
   const insets = useSafeAreaInsets();
   const t = useTranslation();
+
+  const favorites = history.filter((e) => e.isFavorite);
 
   function formatDate(iso: string) {
     const d = new Date(iso);
@@ -40,15 +42,15 @@ export default function HistoryScreen() {
   }
 
   const header = (
-    <Text style={[styles.title, { color: c.text, marginTop: insets.top + 8 }]}>{t.history.title}</Text>
+    <Text style={[styles.title, { color: c.text, marginTop: insets.top + 8 }]}>{t.favorites.title}</Text>
   );
 
-  if (history.length === 0) {
+  if (favorites.length === 0) {
     return (
       <View style={[styles.empty, { backgroundColor: c.bg }]}>
         {header}
-        <Text style={styles.emptyIcon}>🗺️</Text>
-        <Text style={[styles.emptyText, { color: c.subtext }]}>{t.history.empty}</Text>
+        <Text style={styles.emptyIcon}>⭐</Text>
+        <Text style={[styles.emptyText, { color: c.subtext }]}>{t.favorites.empty}</Text>
       </View>
     );
   }
@@ -57,7 +59,7 @@ export default function HistoryScreen() {
     <FlatList
       style={[styles.list, { backgroundColor: c.bg }]}
       contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 16 }]}
-      data={history}
+      data={favorites}
       keyExtractor={(item) => item.id}
       ListHeaderComponent={header}
       renderItem={({ item }) => (
@@ -69,9 +71,7 @@ export default function HistoryScreen() {
                 {t.history.routeTypes[item.routeType] ?? item.routeType}
               </Text>
               <TouchableOpacity onPress={() => toggleFavorite(item.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Text style={[styles.star, { color: item.isFavorite ? c.accent : c.muted }]}>
-                  {item.isFavorite ? '★' : '☆'}
-                </Text>
+                <Text style={[styles.star, { color: c.accent }]}>★</Text>
               </TouchableOpacity>
             </View>
           </View>

@@ -6,6 +6,7 @@ import { Text } from 'react-native';
 import HomeScreen from './src/screens/HomeScreen';
 import HistoryScreen from './src/screens/HistoryScreen';
 import MapScreen from './src/screens/MapScreen';
+import FavoritesScreen from './src/screens/FavoritesScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import PrivacyPolicyScreen from './src/screens/PrivacyPolicyScreen';
 import { getColors, useAppScheme } from './src/theme';
@@ -43,6 +44,14 @@ function TabNavigator() {
         options={{
           tabBarLabel: t.tabs.history,
           tabBarIcon: ({ color }) => <Text style={{ fontSize: 18, color }}>📋</Text>,
+        }}
+      />
+      <Tab.Screen
+        name="Favoris"
+        component={FavoritesScreen}
+        options={{
+          tabBarLabel: t.tabs.favorites,
+          tabBarIcon: ({ color }) => <Text style={{ fontSize: 18, color }}>⭐</Text>,
         }}
       />
       <Tab.Screen
