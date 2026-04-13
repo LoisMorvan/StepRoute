@@ -16,6 +16,8 @@ export interface RouteData {
   geometry: Coordinates[];
   distanceMeters: number;
   estimatedSteps: number;
+  ascent?: number;
+  descent?: number;
 }
 
 export interface HistoryEntry {
@@ -25,4 +27,7 @@ export interface HistoryEntry {
   steps: number;
   distanceMeters: number;
   geometry: Coordinates[];
+  ascent?: number;
+  descent?: number;
+  isFavorite?: boolean;
 }
