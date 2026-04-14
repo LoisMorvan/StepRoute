@@ -24,7 +24,7 @@ const config: ExpoConfig = {
       foregroundImage: './assets/adaptive-icon.png',
       backgroundColor: '#ffffff',
     },
-    versionCode: 2,
+    versionCode: 3,
     edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
     package: 'com.loismorvan.steproute',
