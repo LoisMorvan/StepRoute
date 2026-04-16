@@ -31,6 +31,7 @@ export const translations = {
       searchAddress: 'Search an address...',
       errors: {
         invalidSteps: 'Enter a valid step count (minimum 100)',
+        tooManySteps: 'Enter a step count of 40,000 or less',
         noStart: 'Please set a starting point',
         locationFailed: 'Unable to get location',
         addressNotFound: 'Address not found',
@@ -154,6 +155,7 @@ export const translations = {
       searchAddress: 'Rechercher une adresse...',
       errors: {
         invalidSteps: 'Entrez un nombre de pas valide (minimum 100)',
+        tooManySteps: 'Entrez un nombre de pas de 40 000 maximum',
         noStart: 'Veuillez définir un point de départ',
         locationFailed: 'Impossible de récupérer la position',
         addressNotFound: 'Adresse introuvable',
