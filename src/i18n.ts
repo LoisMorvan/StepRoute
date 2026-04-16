@@ -62,6 +62,9 @@ export const translations = {
       stepsWalked: 'steps walked',
       elevation: (ascent: number, descent: number) =>
         `Elevation  ↑ ${Math.round(ascent)}m  ↓ ${Math.round(descent)}m`,
+      locationPermissionDeniedTitle: 'Location not allowed',
+      locationPermissionDeniedMessage:
+        'Real-time GPS tracking will not be available. You can still walk.',
     },
     settings: {
       title: 'Settings',
@@ -186,6 +189,9 @@ export const translations = {
       stepsWalked: 'pas parcourus',
       elevation: (ascent: number, descent: number) =>
         `Dénivelé  ↑ ${Math.round(ascent)}m  ↓ ${Math.round(descent)}m`,
+      locationPermissionDeniedTitle: 'Localisation non autorisée',
+      locationPermissionDeniedMessage:
+        'Le suivi GPS en temps réel ne sera pas disponible. Vous pouvez quand même marcher.',
     },
     settings: {
       title: 'Paramètres',
