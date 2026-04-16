@@ -1,6 +1,7 @@
 import MapLibreGL, { CameraRef } from '@maplibre/maplibre-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
+import * as Location from 'expo-location';
 import { Pedometer } from 'expo-sensors';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -24,17 +25,29 @@ export default function MapScreen() {
   const [regenerating, setRegenerating] = useState(false);
   const [overlayHeight, setOverlayHeight] = useState(220);
   const [isTracking, setIsTracking] = useState(false);
+  const [locationGranted, setLocationGranted] = useState(false);
   const [liveSteps, setLiveSteps] = useState(0);
+  const [userPosition, setUserPosition] = useState<[number, number] | null>(null);
+  const [isFollowingUser, setIsFollowingUser] = useState(false);
   const cameraRef = useRef<CameraRef | null>(null);
   const pedometerRef = useRef<{ remove(): void } | null>(null);
   const lastPositionRef = useRef<[number, number] | null>(null);
+  const locationWatchRef = useRef<Location.LocationSubscription | null>(null);
+  const hasInitialZoom = useRef(false);
+  const isFollowingUserRef = useRef(false);
+
+  useEffect(() => {
+    isFollowingUserRef.current = isFollowingUser;
+  }, [isFollowingUser]);
 
   useEffect(() => {
     return () => {
       pedometerRef.current?.remove();
+      locationWatchRef.current?.remove();
       deactivateKeepAwake();
     };
   }, []);
+
   const scheme = useAppScheme(themePreference);
   const c = getColors(scheme);
   const insets = useSafeAreaInsets();
@@ -97,6 +110,7 @@ export default function MapScreen() {
 
   function handleRecenter() {
     if (isTracking) {
+      setIsFollowingUser(true);
       if (lastPositionRef.current) {
         cameraRef.current?.moveTo(lastPositionRef.current, 300);
       }
@@ -108,6 +122,34 @@ export default function MapScreen() {
   async function handleStartWalk() {
     setLiveSteps(0);
     await activateKeepAwakeAsync();
+    const { status: locStatus } = await Location.requestForegroundPermissionsAsync();
+    const granted = locStatus === 'granted';
+    setLocationGranted(granted);
+    if (!granted) {
+      Alert.alert(
+        t.map.locationPermissionDeniedTitle,
+        t.map.locationPermissionDeniedMessage,
+      );
+    } else {
+      hasInitialZoom.current = false;
+      setIsFollowingUser(true);
+      locationWatchRef.current = await Location.watchPositionAsync(
+        { accuracy: Location.Accuracy.BestForNavigation, distanceInterval: 3 },
+        (loc) => {
+          const pos: [number, number] = [loc.coords.longitude, loc.coords.latitude];
+          setUserPosition(pos);
+          lastPositionRef.current = pos;
+          if (isFollowingUserRef.current) {
+            if (!hasInitialZoom.current) {
+              cameraRef.current?.setCamera({ centerCoordinate: pos, zoomLevel: 17, animationDuration: 500 });
+              hasInitialZoom.current = true;
+            } else {
+              cameraRef.current?.moveTo(pos, 300);
+            }
+          }
+        },
+      );
+    }
     const { status } = await Pedometer.requestPermissionsAsync();
     if (status === 'granted') {
       const available = await Pedometer.isAvailableAsync();
@@ -124,6 +166,11 @@ export default function MapScreen() {
     deactivateKeepAwake();
     pedometerRef.current?.remove();
     pedometerRef.current = null;
+    locationWatchRef.current?.remove();
+    locationWatchRef.current = null;
+    setUserPosition(null);
+    setIsFollowingUser(false);
+    hasInitialZoom.current = false;
     setLiveSteps(0);
     setIsTracking(false);
     setTimeout(() => {
@@ -133,23 +180,19 @@ export default function MapScreen() {
 
   return (
     <View style={styles.container}>
-      <MapLibreGL.MapView style={styles.map} mapStyle={mapStyle}>
+      <MapLibreGL.MapView
+        style={styles.map}
+        mapStyle={mapStyle}
+        onRegionWillChange={(feature) => {
+          if (isTracking && (feature as any).properties?.isUserInteraction) {
+            setIsFollowingUser(false);
+          }
+        }}
+      >
         <MapLibreGL.Camera
           ref={cameraRef}
           bounds={isTracking ? undefined : { ne: bounds.ne, sw: bounds.sw, paddingTop: 60, paddingBottom: overlayHeight + 16, paddingLeft: 40, paddingRight: 40 }}
           animationDuration={500}
-          followUserLocation={isTracking}
-          followZoomLevel={17}
-        />
-
-        <MapLibreGL.UserLocation
-          visible={isTracking}
-          renderMode="normal"
-          animated={true}
-          minDisplacement={5}
-          onUpdate={(loc) => {
-            lastPositionRef.current = [loc.coords.longitude, loc.coords.latitude];
-          }}
         />
 
         <MapLibreGL.ShapeSource id="route" shape={routeGeoJSON}>
@@ -166,6 +209,12 @@ export default function MapScreen() {
         <MapLibreGL.PointAnnotation id="end" coordinate={[end.longitude, end.latitude]}>
           <View style={[styles.marker, styles.markerEnd]} />
         </MapLibreGL.PointAnnotation>
+
+        {isTracking && userPosition && (
+          <MapLibreGL.PointAnnotation id="userPosition" coordinate={userPosition} anchor={{ x: 0.5, y: 0.5 }}>
+            <View style={styles.userDot} />
+          </MapLibreGL.PointAnnotation>
+        )}
       </MapLibreGL.MapView>
 
       {/* Bouton recentrer flottant — bas droit, juste au-dessus de l'overlay */}
@@ -174,7 +223,7 @@ export default function MapScreen() {
         onPress={handleRecenter}
         accessibilityLabel={t.map.recenter}
       >
-        <Text style={styles.recenterIcon}>⊙</Text>
+        <Text style={[styles.recenterIcon, { color: isTracking && !isFollowingUser ? c.subtext : '#5DBE4A' }]}>⊙</Text>
       </TouchableOpacity>
 
       <View style={[styles.infoContainer, { bottom: insets.bottom + 16 }]} onLayout={(e) => setOverlayHeight(e.nativeEvent.layout.height)}>
@@ -237,6 +286,14 @@ const styles = StyleSheet.create({
   marker: { width: 16, height: 16, borderRadius: 8, borderWidth: 2, borderColor: '#fff' },
   markerStart: { backgroundColor: '#5DBE4A' },
   markerEnd: { backgroundColor: '#e74c3c' },
+  userDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#007AFF',
+    borderWidth: 2.5,
+    borderColor: '#fff',
+  },
   recenterButton: {
     position: 'absolute',
     right: 16,
@@ -251,7 +308,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
   },
-  recenterIcon: { fontSize: 22, color: '#5DBE4A', lineHeight: 24 },
+  recenterIcon: { fontSize: 22, lineHeight: 24 },
   infoContainer: {
     position: 'absolute',
     left: 16,

@@ -120,6 +120,10 @@ export default function HomeScreen() {
       setError(t.home.errors.invalidSteps);
       return;
     }
+    if (parsedSteps > 40000) {
+      setError(t.home.errors.tooManySteps);
+      return;
+    }
     if (!startLocation) {
       setError(t.home.errors.noStart);
       return;
