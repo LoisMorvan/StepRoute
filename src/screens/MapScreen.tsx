@@ -4,7 +4,7 @@ import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import * as Location from 'expo-location';
 import { Pedometer } from 'expo-sensors';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, AppState, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import RouteInfo from '../components/RouteInfo';
 import { getOptimizedRoute } from '../services/routeService';
@@ -20,7 +20,7 @@ const STYLE_URL_LIGHT = 'https://tiles.openfreemap.org/styles/liberty';
 const STYLE_URL_DARK = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 
 export default function MapScreen() {
-  const { routeData, startLocation, steps, heightCm, routeType, avoidHighways, preferGreen, setRouteData, replaceLastHistory, themePreference } = useStore();
+  const { routeData, startLocation, steps, heightCm, routeType, avoidHighways, preferGreen, setRouteData, replaceLastHistory, themePreference, isTracking: storedIsTracking, liveStepsSnapshot, setIsTracking: setStoredIsTracking, setLiveStepsSnapshot } = useStore();
   const navigation = useNavigation();
   const [regenerating, setRegenerating] = useState(false);
   const [overlayHeight, setOverlayHeight] = useState(220);
@@ -36,6 +36,7 @@ export default function MapScreen() {
   const hasInitialZoom = useRef(false);
   const isFollowingUserRef = useRef(false);
   const isTrackingRef = useRef(false);
+  const liveStepsRef = useRef(0);
 
   useEffect(() => {
     isFollowingUserRef.current = isFollowingUser;
@@ -44,6 +45,27 @@ export default function MapScreen() {
   useEffect(() => {
     isTrackingRef.current = isTracking;
   }, [isTracking]);
+
+  useEffect(() => {
+    liveStepsRef.current = liveSteps;
+  }, [liveSteps]);
+
+  // Auto-resume tracking after app was killed in background
+  useEffect(() => {
+    if (storedIsTracking && !isTracking) {
+      resumeTracking();
+    }
+  }, [storedIsTracking]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Save step count snapshot when app goes to background
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if ((nextState === 'background' || nextState === 'inactive') && isTrackingRef.current) {
+        setLiveStepsSnapshot(liveStepsRef.current);
+      }
+    });
+    return () => sub.remove();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     return () => {
@@ -131,8 +153,7 @@ export default function MapScreen() {
     cameraRef.current?.fitBounds(bounds.ne, bounds.sw, [60, 40, overlayHeight + 16, 40], 500);
   }
 
-  async function handleStartWalk() {
-    setLiveSteps(0);
+  async function startSubscriptions(stepsBaseline: number) {
     await activateKeepAwakeAsync();
     const { status: locStatus } = await Location.requestForegroundPermissionsAsync();
     const granted = locStatus === 'granted';
@@ -145,6 +166,7 @@ export default function MapScreen() {
     } else {
       hasInitialZoom.current = false;
       setIsFollowingUser(true);
+      isFollowingUserRef.current = true;
       locationWatchRef.current = await Location.watchPositionAsync(
         { accuracy: Location.Accuracy.BestForNavigation, distanceInterval: 3 },
         (loc) => {
@@ -167,11 +189,28 @@ export default function MapScreen() {
       const available = await Pedometer.isAvailableAsync();
       if (available) {
         pedometerRef.current = Pedometer.watchStepCount(({ steps }) => {
-          setLiveSteps(steps);
+          setLiveSteps(stepsBaseline + steps);
         });
       }
     }
+  }
+
+  async function handleStartWalk() {
+    setLiveSteps(0);
+    liveStepsRef.current = 0;
+    setStoredIsTracking(true);
+    setLiveStepsSnapshot(0);
     setIsTracking(true);
+    isTrackingRef.current = true;
+    await startSubscriptions(0);
+  }
+
+  async function resumeTracking() {
+    setIsTracking(true);
+    isTrackingRef.current = true;
+    setLiveSteps(liveStepsSnapshot);
+    liveStepsRef.current = liveStepsSnapshot;
+    await startSubscriptions(liveStepsSnapshot);
   }
 
   function handleStopWalk() {
@@ -182,9 +221,14 @@ export default function MapScreen() {
     locationWatchRef.current = null;
     setUserPosition(null);
     setIsFollowingUser(false);
+    isFollowingUserRef.current = false;
     hasInitialZoom.current = false;
     setLiveSteps(0);
+    liveStepsRef.current = 0;
     setIsTracking(false);
+    isTrackingRef.current = false;
+    setStoredIsTracking(false);
+    setLiveStepsSnapshot(0);
     setTimeout(() => {
       cameraRef.current?.fitBounds(bounds.ne, bounds.sw, [60, 40, overlayHeight + 16, 40], 500);
     }, 50);
@@ -192,16 +236,7 @@ export default function MapScreen() {
 
   return (
     <View style={styles.container}>
-      <View
-        style={styles.map}
-        onStartShouldSetResponderCapture={() => {
-          if (isTrackingRef.current && isFollowingUserRef.current) {
-            isFollowingUserRef.current = false;
-            setIsFollowingUser(false);
-          }
-          return false;
-        }}
-      >
+      <View style={styles.map}>
         <MapLibreGL.MapView
           style={StyleSheet.absoluteFill}
           mapStyle={mapStyle}
@@ -209,6 +244,12 @@ export default function MapScreen() {
           compassEnabled={true}
           compassViewPosition={3}
           compassViewMargins={{ x: 16, y: insets.bottom + overlayHeight + 76 }}
+          onRegionWillChange={(payload) => {
+            if (isTrackingRef.current && isFollowingUserRef.current && payload.properties?.isUserInteraction) {
+              isFollowingUserRef.current = false;
+              setIsFollowingUser(false);
+            }
+          }}
         >
           <MapLibreGL.Camera
             ref={cameraRef}
