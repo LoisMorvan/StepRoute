@@ -6,7 +6,7 @@ const routeApiUrl =
 const config: ExpoConfig = {
   name: 'StepRoute',
   slug: 'steproute',
-  version: '1.2.4',
+  version: '1.2.5',
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'automatic',
@@ -24,7 +24,7 @@ const config: ExpoConfig = {
       foregroundImage: './assets/adaptive-icon.png',
       backgroundColor: '#ffffff',
     },
-    versionCode: 5,
+    versionCode: 6,
     edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
     package: 'com.loismorvan.steproute',
