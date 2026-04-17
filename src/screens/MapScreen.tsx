@@ -35,10 +35,15 @@ export default function MapScreen() {
   const locationWatchRef = useRef<Location.LocationSubscription | null>(null);
   const hasInitialZoom = useRef(false);
   const isFollowingUserRef = useRef(false);
+  const isTrackingRef = useRef(false);
 
   useEffect(() => {
     isFollowingUserRef.current = isFollowingUser;
   }, [isFollowingUser]);
+
+  useEffect(() => {
+    isTrackingRef.current = isTracking;
+  }, [isTracking]);
 
   useEffect(() => {
     return () => {
@@ -59,12 +64,19 @@ export default function MapScreen() {
   const start = routeData.geometry[0];
   const end = routeData.geometry[routeData.geometry.length - 1];
 
-  const coords = routeData.geometry.map((pt) => [pt.longitude, pt.latitude]);
-  const lngs = coords.map((pt) => pt[0]);
-  const lats = coords.map((pt) => pt[1]);
+  const lngs = routeData.geometry.map((pt) => pt.longitude);
+  const lats = routeData.geometry.map((pt) => pt.latitude);
   const bounds = {
     ne: [Math.max(...lngs), Math.max(...lats)] as [number, number],
     sw: [Math.min(...lngs), Math.min(...lats)] as [number, number],
+  };
+  const cameraBounds = {
+    ne: bounds.ne,
+    sw: bounds.sw,
+    paddingTop: 60,
+    paddingBottom: overlayHeight + 16,
+    paddingLeft: 40,
+    paddingRight: 40,
   };
 
   const routeGeoJSON: GeoJSON.Feature<GeoJSON.LineString> = {
@@ -180,42 +192,52 @@ export default function MapScreen() {
 
   return (
     <View style={styles.container}>
-      <MapLibreGL.MapView
+      <View
         style={styles.map}
-        mapStyle={mapStyle}
-        onRegionWillChange={(feature) => {
-          if (isTracking && (feature as any).properties?.isUserInteraction) {
+        onStartShouldSetResponderCapture={() => {
+          if (isTrackingRef.current && isFollowingUserRef.current) {
+            isFollowingUserRef.current = false;
             setIsFollowingUser(false);
           }
+          return false;
         }}
       >
-        <MapLibreGL.Camera
-          ref={cameraRef}
-          bounds={isTracking ? undefined : { ne: bounds.ne, sw: bounds.sw, paddingTop: 60, paddingBottom: overlayHeight + 16, paddingLeft: 40, paddingRight: 40 }}
-          animationDuration={500}
-        />
-
-        <MapLibreGL.ShapeSource id="route" shape={routeGeoJSON}>
-          <MapLibreGL.LineLayer
-            id="routeLine"
-            style={{ lineColor: c.accent, lineWidth: 4, lineJoin: 'round', lineCap: 'round' }}
+        <MapLibreGL.MapView
+          style={StyleSheet.absoluteFill}
+          mapStyle={mapStyle}
+          rotateEnabled={true}
+          compassEnabled={true}
+          compassViewPosition={3}
+          compassViewMargins={{ x: 16, y: insets.bottom + overlayHeight + 76 }}
+        >
+          <MapLibreGL.Camera
+            ref={cameraRef}
+            bounds={isTracking ? undefined : cameraBounds}
+            animationDuration={500}
           />
-        </MapLibreGL.ShapeSource>
 
-        <MapLibreGL.PointAnnotation id="start" coordinate={[start.longitude, start.latitude]}>
-          <View style={[styles.marker, styles.markerStart]} />
-        </MapLibreGL.PointAnnotation>
+          <MapLibreGL.ShapeSource id="route" shape={routeGeoJSON}>
+            <MapLibreGL.LineLayer
+              id="routeLine"
+              style={{ lineColor: c.accent, lineWidth: 4, lineJoin: 'round', lineCap: 'round' }}
+            />
+          </MapLibreGL.ShapeSource>
 
-        <MapLibreGL.PointAnnotation id="end" coordinate={[end.longitude, end.latitude]}>
-          <View style={[styles.marker, styles.markerEnd]} />
-        </MapLibreGL.PointAnnotation>
-
-        {isTracking && userPosition && (
-          <MapLibreGL.PointAnnotation id="userPosition" coordinate={userPosition} anchor={{ x: 0.5, y: 0.5 }}>
-            <View style={styles.userDot} />
+          <MapLibreGL.PointAnnotation id="start" coordinate={[start.longitude, start.latitude]}>
+            <View style={[styles.marker, styles.markerStart]} />
           </MapLibreGL.PointAnnotation>
-        )}
-      </MapLibreGL.MapView>
+
+          <MapLibreGL.PointAnnotation id="end" coordinate={[end.longitude, end.latitude]}>
+            <View style={[styles.marker, styles.markerEnd]} />
+          </MapLibreGL.PointAnnotation>
+
+          {isTracking && userPosition && (
+            <MapLibreGL.PointAnnotation id="userPosition" coordinate={userPosition} anchor={{ x: 0.5, y: 0.5 }}>
+              <View style={styles.userDot} />
+            </MapLibreGL.PointAnnotation>
+          )}
+        </MapLibreGL.MapView>
+      </View>
 
       {/* Bouton recentrer flottant — bas droit, juste au-dessus de l'overlay */}
       <TouchableOpacity
@@ -226,7 +248,10 @@ export default function MapScreen() {
         <Text style={[styles.recenterIcon, { color: isTracking && !isFollowingUser ? c.subtext : '#5DBE4A' }]}>⊙</Text>
       </TouchableOpacity>
 
-      <View style={[styles.infoContainer, { bottom: insets.bottom + 16 }]} onLayout={(e) => setOverlayHeight(e.nativeEvent.layout.height)}>
+      <View
+        style={[styles.infoContainer, { bottom: insets.bottom + 16 }]}
+        onLayout={(e) => setOverlayHeight(e.nativeEvent.layout.height)}
+      >
         <RouteInfo routeData={routeData} />
 
         {isTracking ? (
