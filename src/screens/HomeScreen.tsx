@@ -49,6 +49,8 @@ export default function HomeScreen() {
   const [progressMsg, setProgressMsg] = useState('');
   const [usingCurrentLocation, setUsingCurrentLocation] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const addressSectionYRef = useRef(0);
 
   const scheme = useAppScheme(themePreference);
   const c = getColors(scheme);
@@ -176,9 +178,9 @@ export default function HomeScreen() {
   return (
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: c.bg }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior="padding"
     >
-      <ScrollView contentContainerStyle={styles.inner} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={scrollViewRef} contentContainerStyle={styles.inner} keyboardShouldPersistTaps="handled">
         <Text style={[styles.title, { color: c.text }]}>StepRoute</Text>
         <Text style={[styles.subtitle, { color: c.subtext }]}>{t.home.subtitle}</Text>
 
@@ -217,7 +219,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <View style={styles.section}>
+        <View style={styles.section} onLayout={(e) => { addressSectionYRef.current = e.nativeEvent.layout.y; }}>
           <Text style={[styles.label, { color: c.subtext }]}>{t.home.startingPoint}</Text>
 
           <TouchableOpacity
@@ -251,6 +253,11 @@ export default function HomeScreen() {
                 placeholderTextColor={c.muted}
                 returnKeyType="search"
                 onSubmitEditing={handleSearchAddress}
+                onFocus={() => {
+                  setTimeout(() => {
+                    scrollViewRef.current?.scrollTo({ y: addressSectionYRef.current, animated: true });
+                  }, 150);
+                }}
               />
               <TouchableOpacity
                 style={styles.searchButton}
@@ -360,6 +367,7 @@ const styles = StyleSheet.create({
   suggestionsList: {
     borderRadius: 12,
     marginTop: 4,
+    maxHeight: 220,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
