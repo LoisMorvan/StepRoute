@@ -20,6 +20,8 @@ interface StoreState {
   language: Language;
   avoidHighways: boolean;
   preferGreen: boolean;
+  isTracking: boolean;
+  liveStepsSnapshot: number;
 
   setSteps: (steps: number) => void;
   setHeightCm: (cm: number) => void;
@@ -35,6 +37,8 @@ interface StoreState {
   setLanguage: (lang: Language) => void;
   setAvoidHighways: (v: boolean) => void;
   setPreferGreen: (v: boolean) => void;
+  setIsTracking: (v: boolean) => void;
+  setLiveStepsSnapshot: (v: number) => void;
   reset: () => void;
 }
 
@@ -51,6 +55,8 @@ const defaultState = {
   language: 'en' as Language,
   avoidHighways: false,
   preferGreen: false,
+  isTracking: false,
+  liveStepsSnapshot: 0,
 };
 
 export const useStore = create<StoreState>()(
@@ -85,6 +91,8 @@ export const useStore = create<StoreState>()(
       setLanguage: (language) => set({ language }),
       setAvoidHighways: (avoidHighways) => set({ avoidHighways }),
       setPreferGreen: (preferGreen) => set({ preferGreen }),
+      setIsTracking: (isTracking) => set({ isTracking }),
+      setLiveStepsSnapshot: (liveStepsSnapshot) => set({ liveStepsSnapshot }),
       reset: () => set(defaultState),
     }),
     {
@@ -99,6 +107,8 @@ export const useStore = create<StoreState>()(
         language: state.language,
         avoidHighways: state.avoidHighways,
         preferGreen: state.preferGreen,
+        isTracking: state.isTracking,
+        liveStepsSnapshot: state.liveStepsSnapshot,
       }),
     },
   ),
