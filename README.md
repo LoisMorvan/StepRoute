@@ -40,9 +40,6 @@ Target steps + route type
 Step conversion
         |
         v
-Waypoint generation
-        |
-        v
 Routing worker
         |
         v
@@ -55,6 +52,12 @@ Optimized route
 
 The routing provider key is not stored in the mobile app. The app calls a Cloudflare Worker endpoint, and the Worker owns the provider integration.
 
+More details:
+
+- [Product Requirements](docs/PRD.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Development Notes](docs/DEVELOPMENT.md)
+
 ## Project Structure
 
 ```txt
@@ -63,6 +66,8 @@ src/
   screens/HomeScreen.tsx
   screens/MapScreen.tsx
   screens/HistoryScreen.tsx
+  screens/FavoritesScreen.tsx
+  screens/PrivacyPolicyScreen.tsx
   screens/SettingsScreen.tsx
   services/geocodingService.ts
   services/locationService.ts
@@ -71,9 +76,14 @@ src/
   store/useStore.ts
   types/index.ts
   utils/gpxExport.ts
-  utils/waypointGenerator.ts
+  utils/openInMaps.ts
   theme.ts
+  i18n.ts
   config.ts
+docs/
+  PRD.md
+  ARCHITECTURE.md
+  DEVELOPMENT.md
 ```
 
 ## Configuration
@@ -116,11 +126,10 @@ pnpm exec tsc --noEmit
 ## Route Generation
 
 1. Convert the target step count to meters using the configured stride length.
-2. Generate waypoints based on the selected route mode.
-3. Request a route from the routing worker.
-4. Compare the resulting distance with the target.
-5. Adjust waypoint distance and retry for up to 5 iterations.
-6. Keep the best route found within the tolerance window.
+2. Send the target distance, stride length, start coordinates, route type, and route preferences to the routing worker.
+3. Receive the generated route geometry and summary from the worker.
+4. Store the route in local state.
+5. Display the route on the map and optionally add it to local history.
 
 ## Privacy And Secrets
 
