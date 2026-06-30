@@ -1,77 +1,133 @@
 # StepRoute
 
-Application mobile React Native qui génère des parcours de marche à partir d'un objectif en nombre de pas.
+Mobile walking-route generator built with Expo and React Native.
+
+StepRoute turns a target number of steps into a walking route, displays it on a map, keeps recent routes locally, and exports GPX files for apps such as Strava or Komoot.
+
+## Features
+
+- Generate walking routes from a target number of steps.
+- Route modes: loop, out-and-back, and one-way.
+- Iterative distance optimization with a step tolerance window.
+- Address search and current-location support.
+- Map display with MapLibre.
+- Route regeneration from the map screen.
+- GPX export through the native share sheet.
+- Local history for recent routes.
+- Persisted preferences for stride length, route type, and theme.
+- Light, dark, and system themes.
 
 ## Stack
 
-- **Framework** : Expo SDK 54 + TypeScript
-- **Navigation** : React Navigation (Stack + Bottom Tabs)
-- **État** : Zustand avec persistance AsyncStorage
-- **Carte** : MapLibre (OpenStreetMap / CartoDB Dark Matter)
-- **Routing** : openrouteservice API
-- **Geocoding** : Nominatim
+- Expo SDK 54
+- React Native 0.81
+- React 19
+- TypeScript
+- React Navigation
+- Zustand with AsyncStorage persistence
+- MapLibre React Native
+- expo-location
+- expo-file-system and expo-sharing
+- Nominatim geocoding
+- Routing through a Cloudflare Worker proxy
 
-## Fonctionnalités
+## Architecture
 
-- Génération de parcours (boucle, aller-retour, aller simple) à partir d'un nombre de pas
-- Optimisation itérative du parcours (±500 pas de tolérance, max 5 itérations)
-- Zoom automatique sur le parcours généré
-- Recentrage de la carte via bouton flottant
-- Regénération du parcours sans quitter la carte
-- Export GPX (partage vers Strava, Komoot…)
-- Historique des 20 derniers parcours (persisté)
-- Mode sombre / clair / système
-- Persistance des préférences (taille, type de parcours, thème)
-
-## Structure
-
+```txt
+Target steps + route type
+        |
+        v
+Step conversion
+        |
+        v
+Waypoint generation
+        |
+        v
+Routing worker
+        |
+        v
+Optimized route
+        |
+        +--> Map display
+        +--> Local history
+        +--> GPX export
 ```
+
+The routing provider key is not stored in the mobile app. The app calls a Cloudflare Worker endpoint, and the Worker owns the provider integration.
+
+## Project Structure
+
+```txt
 src/
-  components/RouteInfo.tsx        — distance + pas estimés
-  screens/HomeScreen.tsx          — formulaire de génération
-  screens/MapScreen.tsx           — carte + parcours
-  screens/HistoryScreen.tsx       — historique des parcours
-  screens/SettingsScreen.tsx      — taille, foulée, thème
-  services/geocodingService.ts    — Nominatim (suggestions, recherche)
-  services/locationService.ts     — expo-location (position GPS)
-  services/routeService.ts        — ORS API + optimisation itérative
-  services/stepService.ts         — conversions pas ↔ distance
-  store/useStore.ts               — Zustand + persist (AsyncStorage)
-  types/index.ts                  — RouteType, Coordinates, RouteData, HistoryEntry
-  utils/gpxExport.ts              — export GPX via expo-file-system + expo-sharing
-  utils/waypointGenerator.ts      — génération de waypoints avec bearing aléatoire
-  theme.ts                        — tokens couleur light/dark, hook useAppScheme
-  config.ts                       — ORS_API_KEY (non versionné)
+  components/RouteInfo.tsx
+  screens/HomeScreen.tsx
+  screens/MapScreen.tsx
+  screens/HistoryScreen.tsx
+  screens/SettingsScreen.tsx
+  services/geocodingService.ts
+  services/locationService.ts
+  services/routeService.ts
+  services/stepService.ts
+  store/useStore.ts
+  types/index.ts
+  utils/gpxExport.ts
+  utils/waypointGenerator.ts
+  theme.ts
+  config.ts
 ```
 
-## Installation
+## Configuration
+
+By default, the app uses the public route proxy URL defined in `src/config.ts`.
+
+For another environment, provide an Expo extra value named `routeApiUrl`.
+
+Example:
+
+```json
+{
+  "expo": {
+    "extra": {
+      "routeApiUrl": "https://your-worker.example.com"
+    }
+  }
+}
+```
+
+## Development
 
 ```bash
 pnpm install
+npx expo start
 ```
 
-Créer `src/config.ts` avec la clé API openrouteservice :
-
-```ts
-export const ORS_API_KEY = 'votre_clé_ici';
-```
-
-## Développement
+Run on Android:
 
 ```bash
-# Démarrer le serveur de développement
-npx expo start
-
-# Build Android (device USB)
 npx expo run:android
+```
 
-# Vérifier les types
+Type-check:
+
+```bash
 pnpm exec tsc --noEmit
 ```
 
-## Algorithme de génération
+## Route Generation
 
-1. `stepsToMeters(steps, strideLength)` → distance cible en mètres
-2. Un bearing aléatoire est fixé pour toutes les itérations
-3. Boucle max 5 itérations : appel ORS → correction proportionnelle si écart > ±500 pas
-4. La meilleure itération (écart minimal) est retournée
+1. Convert the target step count to meters using the configured stride length.
+2. Generate waypoints based on the selected route mode.
+3. Request a route from the routing worker.
+4. Compare the resulting distance with the target.
+5. Adjust waypoint distance and retry for up to 5 iterations.
+6. Keep the best route found within the tolerance window.
+
+## Privacy And Secrets
+
+- No routing API key is committed in the app source.
+- Local environment files are ignored.
+- Android debug keystores are ignored and should stay local.
+
+## Status
+
+This is a personal mobile project and a public portfolio repository.
